@@ -1,0 +1,22 @@
+[project]
+name = "agents-mechanism"
+version = "0.1.0"
+description = "Standalone deep research agent built on LiteLLM"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "litellm>=1.60",
+    "ddgs>=9.0",
+    "httpx>=0.27",
+    "beautifulsoup4>=4.12",
+]
+
+[dependency-groups]
+dev = ["ruff"]
+
+[tool.uv]
+# Scripts, not an installable package: run with `uv run scripts/deep_research_agent.py`.
+package = false
+
+[tool.ruff]
+src = ["scripts"]
