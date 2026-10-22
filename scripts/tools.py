@@ -59,13 +59,27 @@ GENERATE_REPORT_TOOL = _function_tool(
     [],
 )
 
-THINK_TOOL = _function_tool(
+ORCHESTRATOR_THINK_TOOL = _function_tool(
     THINK_TOOL_NAME,
     "Use this for reasoning between research_agent calls and before calling generate_report. Think deeply about key results, identify knowledge gaps, and plan next steps.",
     {
         "reasoning": {
             "type": "string",
             "description": "Your chain of thought reasoning, use paragraph format, no lists.",
+        }
+    },
+    ["reasoning"],
+)
+
+# Same tool name and arguments as ORCHESTRATOR_THINK_TOOL; only the description differs, since
+# sub-agents have no research_agent tool to reason between.
+RESEARCH_AGENT_THINK_TOOL = _function_tool(
+    THINK_TOOL_NAME,
+    "Use this for reasoning between research steps. Think deeply about key results, identify knowledge gaps, and plan next steps.",
+    {
+        "reasoning": {
+            "type": "string",
+            "description": "Your chain of thought reasoning, can be as long as a lengthy paragraph.",
         }
     },
     ["reasoning"],

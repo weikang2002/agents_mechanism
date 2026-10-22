@@ -33,7 +33,7 @@ from prompts import (
 from tools import (
     GENERATE_REPORT_TOOL,
     OPEN_URL_TOOL,
-    THINK_TOOL,
+    RESEARCH_AGENT_THINK_TOOL,
     WEB_SEARCH_TOOL,
     ToolDefinition,
 )
@@ -151,7 +151,7 @@ class ResearchAgent:
     def _tool_definitions(self) -> list[ToolDefinition]:
         tools = [WEB_SEARCH_TOOL, OPEN_URL_TOOL, GENERATE_REPORT_TOOL]
         if not self.llm.is_reasoning_model:
-            tools.append(THINK_TOOL)
+            tools.append(RESEARCH_AGENT_THINK_TOOL)
         return tools
 
     def run(self) -> ResearchAgentResult:

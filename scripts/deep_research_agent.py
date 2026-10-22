@@ -73,8 +73,8 @@ from research_agent import (
 from tools import (
     GENERATE_PLAN_TOOL,
     GENERATE_REPORT_TOOL,
+    ORCHESTRATOR_THINK_TOOL,
     RESEARCH_AGENT_TOOL,
-    THINK_TOOL,
     ToolDefinition,
 )
 from utils import Console, get_current_datetime, shorten
@@ -272,7 +272,7 @@ def run_orchestrator(
     else:
         max_cycles = MAX_ORCHESTRATOR_CYCLES
         prompt_template = ORCHESTRATOR_PROMPT
-        tools = [RESEARCH_AGENT_TOOL, GENERATE_REPORT_TOOL, THINK_TOOL]
+        tools = [RESEARCH_AGENT_TOOL, GENERATE_REPORT_TOOL, ORCHESTRATOR_THINK_TOOL]
 
     agents_started = 0
     for cycle in range(max_cycles):
