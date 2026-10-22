@@ -53,9 +53,9 @@ from llm import (
     user_message,
 )
 from prompts import (
+    AFTER_FIRST_CYCLE_REMINDER,
     CLARIFICATION_PROMPT,
     FINAL_REPORT_PROMPT,
-    FIRST_CYCLE_REMINDER,
     GENERATE_REPORT_TOOL_NAME,
     ORCHESTRATOR_PROMPT,
     ORCHESTRATOR_PROMPT_REASONING,
@@ -131,6 +131,39 @@ def run_deep_research(
 
     # Working copy of the conversation. The orchestrator appends its tool calls and the
     # sub-agents' reports to it, and the final report is written from it.
+    #
+    # Example `history` just before the final report (non-reasoning model, after a
+    # clarification round, query "Compare Python 3.13 and 3.12"):
+    #
+    #   # chat_history, from main(): the durable conversation
+    #   {"role": "user", "content": "Compare Python 3.13 and 3.12"}
+    #   {"role": "assistant", "content": "Could you tell me: 1. Which areas matter most? ..."}
+    #   {"role": "user", "content": "Performance and stdlib changes, for upgrading a web service"}
+    #
+    #   # cycle 0: two research agents in parallel, one tool message per call id
+    #   {"role": "assistant", "content": "", "tool_calls": [
+    #       {"id": "call_a1", "type": "function", "function": {
+    #           "name": "research_agent", "arguments": '{"task": "Investigate performance ..."}'}},
+    #       {"id": "call_b2", "type": "function", "function": {
+    #           "name": "research_agent", "arguments": '{"task": "Find stdlib changes ..."}'}}]}
+    #   {"role": "tool", "tool_call_id": "call_a1", "content": "3.13 ships an experimental JIT [1] ..."}
+    #   {"role": "tool", "tool_call_id": "call_b2", "content": "3.13 removed 19 legacy modules [4] ..."}
+    #
+    #   # cycle 1: think_tool, which uses a cycle but runs nothing
+    #   {"role": "assistant", "content": "", "tool_calls": [
+    #       {"id": "call_c3", "type": "function", "function": {
+    #           "name": "think_tool", "arguments": '{"reasoning": "No data on package compat ..."}'}}]}
+    #   {"role": "tool", "tool_call_id": "call_c3", "content": "Acknowledged, please continue."}
+    #
+    #   # cycle 2: one more agent for the gap
+    #   {"role": "assistant", "content": "", "tool_calls": [
+    #       {"id": "call_d4", "type": "function", "function": {
+    #           "name": "research_agent", "arguments": '{"task": "Check package compatibility ..."}'}}]}
+    #   {"role": "tool", "tool_call_id": "call_d4", "content": "Django 5.1 and Flask 3.0 support 3.13 [5] ..."}
+    #
+    #   # cycle 3: generate_report ends the loop; nothing is appended for it
+    #
+    # Not in `history`: the research plan, system prompts and reminder messages.
     history = list(chat_history)
 
     # 1. Clarify
@@ -269,15 +302,19 @@ def run_orchestrator(
             console.log("orchestrator", "no tool calls returned, generating report")
             return
 
+        # 1. If the orchestrator calls generate_report, research is done.
         if find_tool_call(tool_calls, GENERATE_REPORT_TOOL_NAME):
             console.log("orchestrator", f"cycle {cycle}: generate_report")
             return
 
+        # 2. If the orchestrator calls think_tool, record its reasoning and continue.
         think_call = find_tool_call(tool_calls, THINK_TOOL_NAME)
         if think_call:
             _record_think(history, think_call, console, cycle)
             continue
 
+        # 3. If the orchestrator calls research_agent, run the sub-agents and continue.
+        # research_calls is list[ToolCall].
         research_calls = [
             tc for tc in tool_calls if tc.name == RESEARCH_AGENT_TOOL_NAME
         ]
@@ -324,7 +361,7 @@ def _ask_orchestrator(
     ]
     # Right after the first research round, push back against stopping too early.
     if cycle == 1:
-        messages.append(user_message(FIRST_CYCLE_REMINDER))
+        messages.append(user_message(AFTER_FIRST_CYCLE_REMINDER))
     return llm.tool_step(messages, tools, "required").tool_calls
 
 
